@@ -61,19 +61,33 @@ function FitToStations({ stations, fallback, enabled }: { stations: Station[]; f
 /** Fires onMapMove with the new center + viewport radius (miles) after drag/zoom, debounced 500ms. */
 function MapMoveHandler({ onMapMove }: { onMapMove: (lat: number, lng: number, radiusMiles: number) => void }) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
 
   const map = useMapEvents({
     moveend() {
+      mapRef.current = map;
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
-        const center = map.getCenter();
-        const bounds = map.getBounds();
-        const ne = bounds.getNorthEast();
-        const radiusMiles = map.distance(center, ne) / 1609.344;
-        onMapMove(center.lat, center.lng, Math.round(radiusMiles * 10) / 10);
+        const m = mapRef.current;
+        if (!m || !m.getContainer()) return;
+        try {
+          const center = m.getCenter();
+          const bounds = m.getBounds();
+          const ne = bounds.getNorthEast();
+          const radiusMiles = m.distance(center, ne) / 1609.344;
+          onMapMove(center.lat, center.lng, Math.round(radiusMiles * 10) / 10);
+        } catch {
+          // Map was destroyed between moveend and the debounce firing
+        }
       }, 500);
     },
   });
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   return null;
 }
@@ -101,11 +115,28 @@ function StationMarker({
       position={[station.latitude, station.longitude]}
       icon={icon}
     >
-      <Popup>
+      <Popup autoPan={false}>
         <div style={{ fontFamily: "system-ui, sans-serif", minWidth: 160 }}>
           <strong style={{ fontSize: 13 }}>{station.name}</strong>
           {station.brand && (
-            <div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{station.brand}</div>
+            <div style={{ fontSize: 11, color: "#888", marginBottom: 2 }}>{station.brand}</div>
+          )}
+          {/* Status tags */}
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
+            {station.temporary_closure && (
+              <span style={{ background: "#ef4444", color: "#fff", padding: "1px 6px", borderRadius: 3, fontSize: 10, fontWeight: 600 }}>Closed</span>
+            )}
+            {station.is_motorway && (
+              <span style={{ background: "#3b82f6", color: "#fff", padding: "1px 6px", borderRadius: 3, fontSize: 10, fontWeight: 600 }}>Motorway</span>
+            )}
+            {station.is_supermarket && (
+              <span style={{ background: "#22c55e", color: "#fff", padding: "1px 6px", borderRadius: 3, fontSize: 10, fontWeight: 600 }}>Supermarket</span>
+            )}
+          </div>
+          {station.phone && (
+            <a href={`tel:${station.phone}`} style={{ fontSize: 11, color: "#22c55e", textDecoration: "none", display: "block", marginBottom: 6 }}>
+              {station.phone}
+            </a>
           )}
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <tbody>

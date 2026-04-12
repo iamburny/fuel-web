@@ -1,14 +1,59 @@
+export interface DayHours {
+  open?: string;
+  close?: string;
+  is_24_hours?: boolean;
+}
+
+export interface BankHoliday {
+  type?: string;
+  open_time?: string;
+  close_time?: string;
+  is_24_hours?: boolean;
+}
+
+export interface OpeningHours {
+  usual_days?: {
+    monday?: DayHours;
+    tuesday?: DayHours;
+    wednesday?: DayHours;
+    thursday?: DayHours;
+    friday?: DayHours;
+    saturday?: DayHours;
+    sunday?: DayHours;
+  };
+  bank_holidays?: BankHoliday[];
+}
+
+export interface Amenities {
+  adblue_pumps?: boolean;
+  adblue_packaged?: boolean;
+  lpg_pumps?: boolean;
+  car_wash?: boolean;
+  air_pump_or_screenwash?: boolean;
+  water_filling?: boolean;
+  twenty_four_hour_fuel?: boolean;
+  customer_toilets?: boolean;
+}
+
 export interface Station {
   id: number;
   gov_id: string;
   name: string;
   brand?: string;
   operator?: string;
+  phone?: string;
   address_line1?: string;
+  address_line2?: string;
   town?: string;
+  county?: string;
   postcode?: string;
   latitude: number;
   longitude: number;
+  temporary_closure?: boolean;
+  is_motorway?: boolean;
+  is_supermarket?: boolean;
+  amenities?: Amenities | null;
+  opening_hours?: OpeningHours | null;
   distance_miles?: number;
   prices: FuelPrice[];
 }

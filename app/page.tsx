@@ -39,10 +39,10 @@ export default function HomePage() {
         const res = await api.searchStations(search);
         setStations(res.stations);
       } else if (mode === "cheapest") {
-        const res = await api.cheapest(fuelType, coords.lat, coords.lng, radius, 50);
+        const res = await api.cheapest(fuelType, coords.lat, coords.lng, radius, 200);
         setStations(res.results.map((r) => ({ ...r.station, distance_miles: r.distance_miles ?? undefined })));
       } else {
-        const res = await api.nearbyStations(coords.lat, coords.lng, radius, fuelType, 100);
+        const res = await api.nearbyStations(coords.lat, coords.lng, radius, fuelType, 200);
         setStations(res.stations);
       }
     } catch (e) {

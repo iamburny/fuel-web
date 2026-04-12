@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import type { Station, PriceHistoryPoint } from "@/lib/types";
+import type { Station, PriceHistoryPoint, Amenities, OpeningHours, DayHours } from "@/lib/types";
 import { FUEL_LABELS, FUEL_COLORS } from "@/lib/types";
 import FuelTabs from "@/components/FuelTabs";
 import StationMap from "@/components/StationMap";
@@ -61,11 +61,43 @@ export default function StationDetailPage() {
       {/* Header */}
       <div className="page-header" style={{ paddingTop: 0 }}>
         <h1>{station.name}</h1>
-        <p>
-          {[station.brand, station.address_line1, station.town, station.postcode]
+        {station.brand && <p style={{ color: "var(--text-muted)", marginBottom: 4 }}>{station.brand}</p>}
+
+        {/* Status badges */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+          {station.temporary_closure && (
+            <span style={{ background: "#ef4444", color: "#fff", padding: "2px 10px", borderRadius: 4, fontSize: "0.8rem", fontWeight: 600 }}>
+              Temporarily Closed
+            </span>
+          )}
+          {station.is_motorway && (
+            <span style={{ background: "#3b82f6", color: "#fff", padding: "2px 10px", borderRadius: 4, fontSize: "0.8rem", fontWeight: 600 }}>
+              Motorway Services
+            </span>
+          )}
+          {station.is_supermarket && (
+            <span style={{ background: "#22c55e", color: "#fff", padding: "2px 10px", borderRadius: 4, fontSize: "0.8rem", fontWeight: 600 }}>
+              Supermarket
+            </span>
+          )}
+        </div>
+
+        {/* Full address */}
+        <p style={{ lineHeight: 1.5 }}>
+          {[station.address_line1, station.address_line2, station.town, station.county, station.postcode]
             .filter(Boolean)
             .join(", ")}
         </p>
+
+        {/* Phone */}
+        {station.phone && (
+          <p style={{ marginTop: 4 }}>
+            <a href={`tel:${station.phone}`} style={{ color: "var(--accent)", textDecoration: "none" }}>
+              {station.phone}
+            </a>
+          </p>
+        )}
+
         {station.distance_miles != null && (
           <p style={{ marginTop: 4 }}>{station.distance_miles.toFixed(1)} miles away</p>
         )}
@@ -105,6 +137,12 @@ export default function StationDetailPage() {
       {station.prices.length === 0 && (
         <p style={{ color: "var(--text-muted)", marginBottom: 24 }}>No prices currently available.</p>
       )}
+
+      {/* Amenities */}
+      <AmenitiesSection amenities={station.amenities} />
+
+      {/* Opening hours */}
+      <OpeningHoursSection hours={station.opening_hours} />
 
       {/* Price history chart (simple ASCII-like bar chart via CSS) */}
       {history.length > 0 && (
@@ -172,5 +210,100 @@ function PriceChart({ history, fuelType }: { history: PriceHistoryPoint[]; fuelT
         <span>{new Date(history[history.length - 1].reported_at).toLocaleDateString("en-GB")}</span>
       </div>
     </div>
+  );
+}
+
+const AMENITY_LABELS: Record<string, string> = {
+  adblue_pumps: "AdBlue Pumps",
+  adblue_packaged: "AdBlue (Packaged)",
+  lpg_pumps: "LPG",
+  car_wash: "Car Wash",
+  air_pump_or_screenwash: "Air / Screenwash",
+  water_filling: "Water",
+  twenty_four_hour_fuel: "24-Hour Fuel",
+  customer_toilets: "Toilets",
+};
+
+function AmenitiesSection({ amenities }: { amenities?: Amenities | null }) {
+  if (!amenities) return null;
+  const available = Object.entries(AMENITY_LABELS).filter(
+    ([key]) => (amenities as any)[key] === true
+  );
+  if (available.length === 0) return null;
+
+  return (
+    <>
+      <h2 style={{ fontSize: "1.2rem", fontWeight: 600, margin: "32px 0 16px" }}>Amenities</h2>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {available.map(([key, label]) => (
+          <span
+            key={key}
+            style={{
+              background: "var(--card-bg, #1a1a2e)",
+              border: "1px solid var(--border)",
+              padding: "6px 14px",
+              borderRadius: 6,
+              fontSize: "0.85rem",
+              color: "var(--text-primary)",
+            }}
+          >
+            {label}
+          </span>
+        ))}
+      </div>
+    </>
+  );
+}
+
+const DAY_NAMES = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function formatDay(day?: DayHours): string {
+  if (!day) return "—";
+  if (day.is_24_hours) return "24 hours";
+  if (day.open && day.close) return `${day.open} – ${day.close}`;
+  return "—";
+}
+
+function OpeningHoursSection({ hours }: { hours?: OpeningHours | null }) {
+  if (!hours?.usual_days) return null;
+  const days = hours.usual_days;
+  const today = new Date().toLocaleDateString("en-GB", { weekday: "long" }).toLowerCase();
+
+  return (
+    <>
+      <h2 style={{ fontSize: "1.2rem", fontWeight: 600, margin: "32px 0 16px" }}>Opening Hours</h2>
+      <div className="card" style={{ padding: "16px 20px" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
+          <tbody>
+            {DAY_NAMES.map((name, i) => {
+              const isToday = name === today;
+              return (
+                <tr key={name} style={{ fontWeight: isToday ? 700 : 400 }}>
+                  <td style={{ padding: "4px 0", color: isToday ? "var(--accent)" : "var(--text-primary)" }}>
+                    {DAY_LABELS[i]}{isToday ? " (today)" : ""}
+                  </td>
+                  <td style={{ padding: "4px 0", textAlign: "right", fontFamily: "var(--font-mono)" }}>
+                    {formatDay((days as any)[name])}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {hours.bank_holidays && hours.bank_holidays.length > 0 && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+            <strong>Bank holidays:</strong>{" "}
+            {hours.bank_holidays.map((bh, i) => (
+              <span key={i}>
+                {bh.is_24_hours ? "24 hours" : `${bh.open_time} – ${bh.close_time}`}
+                {bh.type ? ` (${bh.type})` : ""}
+                {i < hours.bank_holidays!.length - 1 ? ", " : ""}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
