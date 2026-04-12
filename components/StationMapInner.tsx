@@ -44,8 +44,19 @@ function priceIcon(pricePence: number | null, fuelType: string): L.DivIcon {
 
 function FitToStations({ stations, fallback, enabled }: { stations: Station[]; fallback: [number, number]; enabled: boolean }) {
   const map = useMap();
+  const didInitRef = useRef(false);
 
   useEffect(() => {
+    // On first mount when fitBounds is off (restored state), move the map
+    // to the saved center since MapContainer's center prop is initial-only.
+    if (!didInitRef.current) {
+      didInitRef.current = true;
+      if (!enabled) {
+        map.setView(fallback, map.getZoom());
+        return;
+      }
+    }
+
     if (!enabled) return;
     if (stations.length === 0) {
       map.setView(fallback, map.getZoom());

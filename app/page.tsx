@@ -9,19 +9,48 @@ import StationList from "@/components/StationList";
 import StationMap from "@/components/StationMap";
 import ComplianceFooter from "@/components/ComplianceFooter";
 
+const STORAGE_KEY = "fuel-map-state";
+
+interface MapState {
+  lat: number;
+  lng: number;
+  radius: number;
+  mode: "nearby" | "cheapest";
+  fuelType: FuelType;
+}
+
+function loadMapState(): MapState | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function HomePage() {
   const router = useRouter();
+
+  // Lazy initializers read sessionStorage once on first client mount
+  const [saved] = useState(loadMapState);
   const [stations, setStations] = useState<Station[]>([]);
-  const [fuelType, setFuelType] = useState<FuelType>("E10");
+  const [fuelType, setFuelType] = useState<FuelType>(saved?.fuelType ?? "E10");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [coords, setCoords] = useState({ lat: 51.5074, lng: -0.1278 }); // London default
-  const [radius, setRadius] = useState(10);
-  const [mode, setMode] = useState<"nearby" | "cheapest">("nearby");
-  const [fitBounds, setFitBounds] = useState(true);
+  const [coords, setCoords] = useState(saved ? { lat: saved.lat, lng: saved.lng } : { lat: 51.5074, lng: -0.1278 });
+  const [radius, setRadius] = useState(saved?.radius ?? 10);
+  const [mode, setMode] = useState<"nearby" | "cheapest">(saved?.mode ?? "nearby");
+  const [fitBounds, setFitBounds] = useState(!saved);
 
-  // Replace with real location when available
+  // Save map state so back-navigation restores position
   useEffect(() => {
+    const state: MapState = { lat: coords.lat, lng: coords.lng, radius, mode, fuelType };
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [coords, radius, mode, fuelType]);
+
+  // Only request geolocation if there's no saved state to restore
+  useEffect(() => {
+    if (saved) return;
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
