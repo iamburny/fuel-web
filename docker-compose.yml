@@ -1,0 +1,28 @@
+networks:
+  home:
+    name: home
+    external: true
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_BASE_URL=https://api.fueltracker.uk
+    container_name: fuel-web
+    environment:
+      - NODE_ENV=production
+    ports:
+      - "8201:3000"
+    restart: always
+    networks:
+      - home
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=home"
+      - "traefik.http.routers.fuel-web.entrypoints=https"
+      - "traefik.http.routers.fuel-web.rule=Host(`fueltracker.uk`) || Host(`www.fueltracker.uk`)"
+      - "traefik.http.routers.fuel-web.tls=true"
+      - "traefik.http.routers.fuel-web.tls.certresolver=myresolver"
+      - "traefik.http.services.fuel-web.loadbalancer.server.port=3000"
