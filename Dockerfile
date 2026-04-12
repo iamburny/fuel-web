@@ -27,7 +27,6 @@ ENV NODE_ENV=production
 # Next.js standalone output includes only what's needed
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
-COPY --from=build /app/public ./public 2>/dev/null || true
 
 EXPOSE 3000
 
