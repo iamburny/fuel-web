@@ -36,7 +36,7 @@ export default function HomePage() {
   const [stations, setStations] = useState<Station[]>([]);
   const [fuelType, setFuelType] = useState<FuelType>(saved?.fuelType ?? "E10");
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [coords, setCoords] = useState(saved ? { lat: saved.lat, lng: saved.lng } : { lat: 51.5074, lng: -0.1278 });
   const [radius, setRadius] = useState(saved?.radius ?? 10);
   const [mode, setMode] = useState<"nearby" | "cheapest">(saved?.mode ?? "nearby");
@@ -60,9 +60,8 @@ export default function HomePage() {
     }
   }, []);
 
-  // Fetch stations
+  // Fetch stations — keeps map mounted during refresh, only shows spinner on first load
   const fetchData = useCallback(async () => {
-    setLoading(true);
     try {
       if (search.length >= 2) {
         const res = await api.searchStations(search);
@@ -77,7 +76,7 @@ export default function HomePage() {
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      setInitialLoad(false);
     }
   }, [coords, fuelType, search, mode, radius]);
 
@@ -132,7 +131,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {loading ? (
+      {initialLoad ? (
         <div className="spinner" />
       ) : (
         <>

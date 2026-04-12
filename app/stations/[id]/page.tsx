@@ -17,6 +17,7 @@ export default function StationDetailPage() {
   const [station, setStation] = useState<Station | null>(null);
   const [history, setHistory] = useState<PriceHistoryPoint[]>([]);
   const [fuelType, setFuelType] = useState("E10");
+  const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,8 +34,8 @@ export default function StationDetailPage() {
 
   useEffect(() => {
     if (!station) return;
-    api.priceHistory(id, fuelType, 30).then((res) => setHistory(res.history)).catch(() => setHistory([]));
-  }, [id, fuelType, station]);
+    api.priceHistory(id, fuelType, days).then((res) => setHistory(res.history)).catch(() => setHistory([]));
+  }, [id, fuelType, days, station]);
 
   if (loading) return <div className="container"><div className="spinner" /></div>;
   if (!station) return <div className="container"><p>Station not found.</p></div>;
@@ -144,70 +145,110 @@ export default function StationDetailPage() {
       {/* Opening hours */}
       <OpeningHoursSection hours={station.opening_hours} />
 
-      {/* Price history chart (simple ASCII-like bar chart via CSS) */}
-      {history.length > 0 && (
-        <>
-          <h2 style={{ fontSize: "1.2rem", fontWeight: 600, margin: "32px 0 16px" }}>
-            Price History — {FUEL_LABELS[fuelType] || fuelType} (30 days)
-          </h2>
-          <PriceChart history={history} fuelType={fuelType} />
-        </>
-      )}
+      {/* Price history trend */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "32px 0 16px" }}>
+        <h2 style={{ fontSize: "1.2rem", fontWeight: 600 }}>
+          Price Trend — {FUEL_LABELS[fuelType] || fuelType}
+        </h2>
+        <div className="fuel-tabs" style={{ marginBottom: 0 }}>
+          {[7, 30, 90].map((d) => (
+            <button
+              key={d}
+              className={`fuel-tab ${days === d ? "active" : ""}`}
+              onClick={() => setDays(d)}
+            >
+              {d}d
+            </button>
+          ))}
+        </div>
+      </div>
+      <PriceTrendChart history={history} fuelType={fuelType} />
 
       <ComplianceFooter />
     </div>
   );
 }
 
-function PriceChart({ history, fuelType }: { history: PriceHistoryPoint[]; fuelType: string }) {
-  if (history.length === 0) return null;
+function PriceTrendChart({ history, fuelType }: { history: PriceHistoryPoint[]; fuelType: string }) {
+  if (history.length === 0) {
+    return (
+      <div className="card" style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>
+        No price history available yet. Data builds over time as prices change.
+      </div>
+    );
+  }
 
   const prices = history.map((h) => h.price_pence);
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
+  const min = Math.min(...prices) - 0.5;
+  const max = Math.max(...prices) + 0.5;
   const range = max - min || 1;
   const color = FUEL_COLORS[fuelType] || "var(--accent)";
 
+  const w = 800;
+  const h = 240;
+  const padX = 50;
+  const padY = 20;
+  const chartW = w - padX * 2;
+  const chartH = h - padY * 2;
+
+  const points = history.map((pt, i) => {
+    const x = padX + (i / (history.length - 1 || 1)) * chartW;
+    const y = padY + chartH - ((pt.price_pence - min) / range) * chartH;
+    return { x, y, ...pt };
+  });
+
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  const areaPath = linePath + ` L ${points[points.length - 1].x} ${padY + chartH} L ${points[0].x} ${padY + chartH} Z`;
+
+  const ticks = 5;
+  const yTicks = Array.from({ length: ticks }, (_, i) => min + (range * i) / (ticks - 1));
+
   return (
-    <div className="card" style={{ padding: "24px 20px" }}>
-      {/* Sparkline-style bar chart */}
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 120 }}>
-        {history.map((h, i) => {
-          const pct = ((h.price_pence - min) / range) * 80 + 20; // 20-100% height
+    <div className="card" style={{ padding: "20px 12px" }}>
+      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: "auto" }}>
+        {/* Grid lines */}
+        {yTicks.map((v, i) => {
+          const y = padY + chartH - ((v - min) / range) * chartH;
           return (
-            <div
-              key={i}
-              title={`${h.price_pence.toFixed(1)}p — ${new Date(h.reported_at).toLocaleDateString("en-GB")}`}
-              style={{
-                flex: 1,
-                height: `${pct}%`,
-                background: color,
-                opacity: 0.7 + (i / history.length) * 0.3,
-                borderRadius: "2px 2px 0 0",
-                minWidth: 3,
-                transition: "height 0.3s",
-                cursor: "pointer",
-              }}
-            />
+            <g key={i}>
+              <line x1={padX} x2={w - padX} y1={y} y2={y} stroke="var(--border)" strokeWidth={1} />
+              <text x={padX - 8} y={y + 4} textAnchor="end" fill="var(--text-muted)" fontSize={11} fontFamily="var(--font-mono)">
+                {v.toFixed(1)}
+              </text>
+            </g>
           );
         })}
-      </div>
-      {/* Axis */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginTop: 8,
-          fontFamily: "var(--font-mono)",
-          fontSize: "0.7rem",
-          color: "var(--text-muted)",
-        }}
-      >
-        <span>{new Date(history[0].reported_at).toLocaleDateString("en-GB")}</span>
-        <span>
-          Range: {min.toFixed(1)}p – {max.toFixed(1)}p
-        </span>
-        <span>{new Date(history[history.length - 1].reported_at).toLocaleDateString("en-GB")}</span>
+
+        {/* Area fill */}
+        <path d={areaPath} fill={color} opacity={0.08} />
+
+        {/* Line */}
+        <path d={linePath} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+
+        {/* Dots */}
+        {points.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r={3} fill={color} opacity={0}>
+            <title>
+              {new Date(p.reported_at).toLocaleDateString("en-GB")}: {p.price_pence.toFixed(1)}p
+            </title>
+          </circle>
+        ))}
+
+        {/* X axis labels */}
+        {points
+          .filter((_, i) => i === 0 || i === Math.floor(points.length / 2) || i === points.length - 1)
+          .map((p, i) => (
+            <text key={i} x={p.x} y={h - 2} textAnchor="middle" fill="var(--text-muted)" fontSize={10} fontFamily="var(--font-mono)">
+              {new Date(p.reported_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+            </text>
+          ))}
+      </svg>
+
+      {/* Summary */}
+      <div style={{ display: "flex", justifyContent: "center", gap: 24, marginTop: 8, fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+        <span>Low: {Math.min(...prices).toFixed(1)}p</span>
+        <span>High: {Math.max(...prices).toFixed(1)}p</span>
+        <span>{"\u0394"} {(Math.max(...prices) - Math.min(...prices)).toFixed(1)}p</span>
       </div>
     </div>
   );

@@ -103,6 +103,19 @@ function MapMoveHandler({ onMapMove }: { onMapMove: (lat: number, lng: number, r
   return null;
 }
 
+/** Returns a colour and label for how old a price report is. */
+function priceAge(reportedAt: string): { color: string; label: string; fraction: number } {
+  const ms = Date.now() - new Date(reportedAt).getTime();
+  const hours = ms / 3_600_000;
+  const days = hours / 24;
+
+  if (hours < 1) return { color: "#22c55e", label: `${Math.round(hours * 60)}m ago`, fraction: 1 };
+  if (hours < 24) return { color: "#22c55e", label: `${Math.round(hours)}h ago`, fraction: Math.max(0.6, 1 - hours / 24) };
+  if (days < 3) return { color: "#f59e0b", label: `${Math.round(days)}d ago`, fraction: Math.max(0.3, 1 - days / 7) };
+  if (days < 7) return { color: "#ef4444", label: `${Math.round(days)}d ago`, fraction: Math.max(0.15, 1 - days / 14) };
+  return { color: "#6b7280", label: `${Math.round(days)}d ago`, fraction: 0.1 };
+}
+
 function StationMarker({
   station,
   fuelType,
@@ -153,18 +166,38 @@ function StationMarker({
             <tbody>
               {station.prices
                 .sort((a, b) => a.fuel_type.localeCompare(b.fuel_type))
-                .map((p) => (
-                  <tr key={p.fuel_type} style={{
-                    fontWeight: p.fuel_type === fuelType ? 700 : 400,
-                  }}>
-                    <td style={{ padding: "2px 8px 2px 0", color: FUEL_COLORS[p.fuel_type] || "#999" }}>
-                      {FUEL_SHORT_LABELS[p.fuel_type] || p.fuel_type}
-                    </td>
-                    <td style={{ padding: "2px 0", textAlign: "right", fontFamily: "monospace" }}>
-                      {p.price_pence.toFixed(1)}p
-                    </td>
-                  </tr>
-                ))}
+                .map((p) => {
+                  const age = priceAge(p.reported_at);
+                  return (
+                    <tr key={p.fuel_type} style={{
+                      fontWeight: p.fuel_type === fuelType ? 700 : 400,
+                    }}>
+                      <td style={{ padding: "2px 8px 2px 0", color: FUEL_COLORS[p.fuel_type] || "#999" }}>
+                        {FUEL_SHORT_LABELS[p.fuel_type] || p.fuel_type}
+                      </td>
+                      <td style={{ padding: "2px 0", textAlign: "right", fontFamily: "monospace" }}>
+                        {p.price_pence.toFixed(1)}p
+                      </td>
+                      <td style={{ padding: "2px 0 2px 6px", width: 56 }} title={new Date(p.reported_at).toLocaleString("en-GB")}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                          <div style={{
+                            width: 32, height: 4, borderRadius: 2,
+                            background: "#333",
+                            overflow: "hidden",
+                          }}>
+                            <div style={{
+                              width: `${age.fraction * 100}%`, height: "100%",
+                              background: age.color, borderRadius: 2,
+                            }} />
+                          </div>
+                          <span style={{ fontSize: 9, color: age.color, whiteSpace: "nowrap" }}>
+                            {age.label}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
           {station.prices.length === 0 && (
