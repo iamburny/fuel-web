@@ -1,0 +1,369 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* Palette: industrial dark with fuel-pump accent */
+  --bg-primary: #0a0e14;
+  --bg-card: #111820;
+  --bg-card-hover: #182030;
+  --bg-elevated: #1a2332;
+  --border: #1e2a3a;
+  --border-accent: #2a3a4a;
+
+  --text-primary: #e8edf4;
+  --text-secondary: #8899aa;
+  --text-muted: #556677;
+
+  /* Fuel type accent colors */
+  --fuel-e10: #22c55e;
+  --fuel-e5: #3b82f6;
+  --fuel-b7: #f59e0b;
+  --fuel-sdv: #ef4444;
+
+  --accent: #22c55e;
+  --accent-glow: rgba(34, 197, 94, 0.15);
+  --danger: #ef4444;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --font-display: 'Outfit', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-display);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+a:hover { opacity: 0.8; }
+
+/* ─── Utility classes ───────────────────────────── */
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.page-header {
+  padding: 40px 0 24px;
+}
+
+.page-header h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.page-header p {
+  color: var(--text-secondary);
+  margin-top: 8px;
+  font-size: 1.05rem;
+  font-weight: 300;
+}
+
+/* ─── Cards ─────────────────────────────────────── */
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-accent);
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+/* ─── Fuel type pills ───────────────────────────── */
+
+.fuel-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.fuel-tab {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.04em;
+}
+
+.fuel-tab:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+.fuel-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+}
+
+.fuel-tab[data-fuel="E5"].active { background: var(--fuel-e5); border-color: var(--fuel-e5); }
+.fuel-tab[data-fuel="B7"].active { background: var(--fuel-b7); border-color: var(--fuel-b7); }
+.fuel-tab[data-fuel="SDV"].active { background: var(--fuel-sdv); border-color: var(--fuel-sdv); }
+
+/* ─── Price display ─────────────────────────────── */
+
+.price-big {
+  font-family: var(--font-mono);
+  font-size: 1.8rem;
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+}
+
+.price-unit {
+  font-size: 0.7em;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+/* ─── Station list rows ─────────────────────────── */
+
+.station-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+.station-row:hover {
+  background: var(--bg-card-hover);
+}
+
+.station-row:last-child {
+  border-bottom: none;
+}
+
+.station-info h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.station-meta {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 300;
+}
+
+.station-price {
+  text-align: right;
+}
+
+/* ─── Stat cards ────────────────────────────────── */
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  text-align: center;
+}
+
+.stat-card .label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-bottom: 8px;
+}
+
+.stat-card .value {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+/* ─── Compliance footer ─────────────────────────── */
+
+.compliance-bar {
+  margin-top: 48px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.compliance-bar a {
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ─── Search input ──────────────────────────────── */
+
+.search-input {
+  width: 100%;
+  padding: 14px 20px;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ─── Map container ─────────────────────────────── */
+
+.map-container {
+  width: 100%;
+  height: 400px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+/* ─── Navigation ────────────────────────────────── */
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10, 14, 20, 0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+}
+
+.nav-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  height: 60px;
+  gap: 32px;
+}
+
+.nav-logo {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.nav-logo span {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.nav-links {
+  display: flex;
+  gap: 6px;
+}
+
+.nav-link {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+/* ─── Loading spinner ───────────────────────────── */
+
+.spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0;
+}
+
+.spinner::after {
+  content: "";
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Responsive ────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .page-header h1 { font-size: 1.5rem; }
+  .card-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .map-container { height: 280px; }
+  .nav-inner { gap: 16px; }
+  .nav-link { padding: 6px 10px; font-size: 0.8rem; }
+}
