@@ -20,7 +20,7 @@ export default function Nav() {
         <Link href="/" className="nav-logo">
           <Image src="/logo.png" alt="" width={28} height={28} className="nav-logo-icon" />
           <strong>fuel</strong>
-          <span>track.uk</span>
+          <span>tracker.uk</span>
         </Link>
         <div className="nav-links">
           {links.map((l) => (

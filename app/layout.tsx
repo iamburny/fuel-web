@@ -5,7 +5,7 @@ import ComplianceFooter from "@/components/ComplianceFooter";
 import ThemeSync from "@/components/ThemeSync";
 
 export const metadata: Metadata = {
-  title: "fueltrack.uk — Live Petrol & Diesel Prices",
+  title: "fueltracker.uk — Live Petrol & Diesel Prices",
   description:
     "Find the cheapest petrol and diesel near you. Live prices from the UK Government Fuel Finder scheme.",
 };
