@@ -55,7 +55,7 @@ export const api = {
       days: String(days),
     }),
 
-  priceHistory: (stationId: number, fuelType = "E10", days = 30) =>
+  priceHistory: (stationId: number, fuelType = "E10", days: number | "all" = 30) =>
     get<PriceHistoryResponse>(`/api/prices/history/${stationId}`, {
       fuel_type: fuelType,
       days: String(days),

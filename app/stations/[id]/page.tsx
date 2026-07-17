@@ -21,7 +21,7 @@ export default function StationDetailPage() {
   const [history, setHistory] = useState<PriceHistoryPoint[]>([]);
   const [averages, setAverages] = useState<NationalAverage[]>([]);
   const [fuelType, setFuelType] = useState<string>(prefs.fuelType);
-  const [days, setDays] = useState(30);
+  const [days, setDays] = useState<number | "all">(30);
   const [loading, setLoading] = useState(true);
   const [distanceMiles, setDistanceMiles] = useState<number | null>(null);
 
@@ -198,13 +198,13 @@ export default function StationDetailPage() {
           Price Trend — {fuelLabel(fuelType, prefs.useLongFuelNames)}
         </h2>
         <div className="fuel-tabs" style={{ marginBottom: 0 }}>
-          {[7, 30, 90].map((d) => (
+          {([7, 30, 90, "all"] as const).map((d) => (
             <button
               key={d}
               className={`fuel-tab ${days === d ? "active" : ""}`}
               onClick={() => setDays(d)}
             >
-              {d}d
+              {d === "all" ? "All" : `${d}d`}
             </button>
           ))}
         </div>
