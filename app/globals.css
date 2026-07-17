@@ -363,12 +363,23 @@ a:hover { opacity: 0.8; }
 }
 
 .nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--font-mono);
   font-size: 1rem;
   font-weight: 500;
   color: var(--accent);
   letter-spacing: -0.02em;
   white-space: nowrap;
+}
+
+.nav-logo-icon {
+  border-radius: 6px;
+}
+
+.nav-logo strong {
+  font-weight: 700;
 }
 
 .nav-logo span {
