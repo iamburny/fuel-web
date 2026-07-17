@@ -29,32 +29,67 @@ function loadMapState(): MapState | null {
   }
 }
 
+const LONDON = { lat: 51.5074, lng: -0.1278 };
+
 export default function HomePage() {
   const router = useRouter();
 
-  // Lazy initializers read sessionStorage once on first client mount
-  const [saved] = useState(loadMapState);
   const [prefs] = usePreferences();
   const [stations, setStations] = useState<Station[]>([]);
-  // Restored map-state (within this tab session) wins over the saved "usual fuel" preference,
-  // which only applies to a genuinely fresh visit.
-  const [fuelType, setFuelType] = useState<FuelType>(saved?.fuelType ?? prefs.fuelType);
+  const [fuelType, setFuelType] = useState<FuelType>("E10");
   const [search, setSearch] = useState("");
   const [initialLoad, setInitialLoad] = useState(true);
-  const [coords, setCoords] = useState(saved ? { lat: saved.lat, lng: saved.lng } : { lat: 51.5074, lng: -0.1278 });
-  const [radius, setRadius] = useState(saved?.radius ?? 10);
-  const [mode, setMode] = useState<"nearby" | "cheapest">(saved?.mode ?? "nearby");
-  const [fitBounds, setFitBounds] = useState(!saved);
+  const [coords, setCoords] = useState(LONDON);
+  const [radius, setRadius] = useState(10);
+  const [mode, setMode] = useState<"nearby" | "cheapest">("nearby");
+  const [fitBounds, setFitBounds] = useState(true);
+  // 'pending' until the mount effect below has checked sessionStorage; then 'restored' (a saved
+  // map position exists for this tab session) or 'fresh' (nothing saved). Real state, not a ref,
+  // so other effects can depend on it — gates both "don't overwrite sessionStorage with stale
+  // defaults before we've had a chance to read it" and "don't apply the usual-fuel preference
+  // over a just-restored position" below.
+  const [restoreStatus, setRestoreStatus] = useState<"pending" | "restored" | "fresh">("pending");
 
-  // Save map state so back-navigation restores position
+  // Restore saved map state (this tab session) once on mount. Deliberately done in an effect, not
+  // a useState initializer: sessionStorage doesn't exist during SSR, so reading it in an
+  // initializer means the server-rendered HTML (always "nothing saved") and the client's first
+  // render (the real saved state) disagree — a hydration mismatch. React responds to a mismatch
+  // by discarding and remounting the whole tree, which raced with the stations fetch and crashed
+  // the map/list with an unrelated-looking "Cannot read properties of undefined" error.
   useEffect(() => {
+    const saved = loadMapState();
+    if (saved) {
+      setFuelType(saved.fuelType);
+      setCoords({ lat: saved.lat, lng: saved.lng });
+      setRadius(saved.radius);
+      setMode(saved.mode);
+      setFitBounds(false);
+      setRestoreStatus("restored");
+    } else {
+      setRestoreStatus("fresh");
+    }
+  }, []);
+
+  // Save map state so back-navigation restores position — gated on restoreStatus so this can't
+  // fire with stale defaults before the restore effect above has had a chance to run.
+  useEffect(() => {
+    if (restoreStatus === "pending") return;
     const state: MapState = { lat: coords.lat, lng: coords.lng, radius, mode, fuelType };
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [coords, radius, mode, fuelType]);
+  }, [restoreStatus, coords, radius, mode, fuelType]);
+
+  // Apply the saved "usual fuel" preference, but only for a genuinely fresh visit (no restored
+  // map state) — reruns once prefs has actually finished loading from localStorage (see
+  // usePreferences), since its very first value is always the default.
+  useEffect(() => {
+    if (restoreStatus === "fresh") {
+      setFuelType(prefs.fuelType);
+    }
+  }, [restoreStatus, prefs.fuelType]);
 
   // Only request geolocation if there's no saved state to restore
   useEffect(() => {
-    if (saved) return;
+    if (restoreStatus !== "fresh") return;
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
@@ -62,7 +97,7 @@ export default function HomePage() {
         { timeout: 5000 },
       );
     }
-  }, []);
+  }, [restoreStatus]);
 
   // Fetch stations — keeps map mounted during refresh, only shows spinner on first load
   const fetchData = useCallback(async () => {
@@ -72,7 +107,19 @@ export default function HomePage() {
         setStations(res.stations);
       } else if (mode === "cheapest") {
         const res = await api.cheapest(fuelType, coords.lat, coords.lng, radius, 200);
-        setStations(res.results.map((r) => ({ ...r.station, distance_miles: r.distance_miles ?? undefined })));
+        // /api/prices/cheapest's station objects carry no `prices` array at all — only a
+        // top-level price_pence for the one matched fuel type — so StationList/StationMarker's
+        // `station.prices.filter(...)` crashed on every entry. Synthesize the single-entry array
+        // they expect from the price this endpoint actually gave us. reported_at has no real
+        // value from this endpoint; it's unused by anything rendering this in-memory list (the
+        // station detail page re-fetches full price/history data independently on click).
+        setStations(
+          res.results.map((r) => ({
+            ...r.station,
+            distance_miles: r.distance_miles ?? undefined,
+            prices: [{ fuel_type: fuelType, price_pence: r.price_pence, reported_at: "" }],
+          })),
+        );
       } else {
         const res = await api.nearbyStations(coords.lat, coords.lng, radius, fuelType, 200);
         setStations(res.stations);
@@ -96,9 +143,13 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    // Wait until the sessionStorage restore attempt has resolved, so this doesn't fire once
+    // against the stale London/E10 defaults and then immediately again against the restored
+    // values — the same "flash" trade-off already accepted for the geolocation-driven refetch.
+    if (restoreStatus === "pending") return;
     const timeout = setTimeout(fetchData, search ? 400 : 0);
     return () => clearTimeout(timeout);
-  }, [fetchData]);
+  }, [fetchData, restoreStatus]);
 
   return (
     <div className="container">
