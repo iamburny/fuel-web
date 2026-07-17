@@ -99,27 +99,36 @@ export default function HomePage() {
     }
   }, [restoreStatus, prefs.fuelType]);
 
-  // Resolve geolocation before the first fetch — a saved viewport already has a good position, so
-  // only a genuinely fresh visit requests it (same as before this gate existed, which also avoids
-  // re-prompting for permission every time a restored session is revisited).
+  // Resolve geolocation before the first fetch — but only a genuinely fresh visit needs to wait
+  // on it; a restored viewport already has a good position to fetch against. Either way, once
+  // restoreStatus is known, still requests the real fix in the background purely to learn
+  // browserLocation for the recentre button below — without that, a restored session (which is
+  // most reloads after the very first one in a tab, since the viewport is saved on every change)
+  // would never learn the browser's location and the recentre button could never appear, however
+  // far the map had drifted from it.
   useEffect(() => {
-    if (restoreStatus !== "fresh") {
-      if (restoreStatus === "restored") setLocationStatus("resolved");
-      return;
-    }
+    if (restoreStatus === "pending") return;
     if (!("geolocation" in navigator)) {
       setLocationStatus("resolved");
       return;
     }
+
+    const isFreshVisit = restoreStatus === "fresh";
+    if (!isFreshVisit) setLocationStatus("resolved");
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setCoords(loc);
         setBrowserLocation(loc);
-        setFitBounds(false); // centre on the real position, not a fit-to-stations view
-        setLocationStatus("resolved");
+        if (isFreshVisit) {
+          setCoords(loc);
+          setFitBounds(false); // centre on the real position, not a fit-to-stations view
+          setLocationStatus("resolved");
+        }
       },
-      () => setLocationStatus("resolved"), // denied/unavailable — keep the London default
+      () => {
+        if (isFreshVisit) setLocationStatus("resolved"); // denied/unavailable — keep the default
+      },
       { timeout: 5000 },
     );
   }, [restoreStatus]);

@@ -77,17 +77,19 @@ function FitToStations({ stations, fallback, enabled }: { stations: Station[]; f
   return null;
 }
 
-/** Jumps the map to `center` whenever `token` changes — skips its own first run, since
- *  FitToStations already establishes the initial camera position on mount. */
+/** Jumps the map to `center` whenever `token` changes to a genuinely new value — compares
+ *  against the last-seen token rather than a "have I run yet" boolean, since a boolean flag gets
+ *  consumed by React StrictMode's development-only double-invocation of a fresh effect, making
+ *  the *second* (spurious, same-token) invocation look like a real change and firing an
+ *  unintended jump back to `center`. FitToStations already establishes the initial camera
+ *  position on mount, so the very first token value should never itself trigger a jump. */
 function RecenterOnToken({ center, token }: { center: [number, number]; token: number }) {
   const map = useMap();
-  const isFirstRun = useRef(true);
+  const lastToken = useRef(token);
 
   useEffect(() => {
-    if (isFirstRun.current) {
-      isFirstRun.current = false;
-      return;
-    }
+    if (token === lastToken.current) return;
+    lastToken.current = token;
     map.setView(center, map.getZoom());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);

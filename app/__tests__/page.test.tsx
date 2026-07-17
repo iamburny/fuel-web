@@ -112,23 +112,44 @@ describe("HomePage — fresh visit (no saved map state)", () => {
 });
 
 describe("HomePage — restored map state (repeat visit)", () => {
-  it("restores fuelType/mode/coords/radius from sessionStorage and skips geolocation", async () => {
+  it("restores fuelType/mode/coords/radius from sessionStorage without waiting on geolocation", async () => {
     sessionStorage.setItem(
       MAP_STATE_KEY,
       JSON.stringify({ lat: 52, lng: -1, radius: 20, mode: "cheapest", fuelType: "E5" }),
     );
-    const getCurrentPosition = stubGeolocation();
+    stubGeolocation(() => {}); // never resolves — must not block the fetch below
 
     render(<HomePage />);
 
     await waitFor(() => expect(mockedApi.cheapest).toHaveBeenCalled());
-    expect(getCurrentPosition).not.toHaveBeenCalled();
 
     const [fuelType, lat, lng, radius] = mockedApi.cheapest.mock.calls[0];
     expect(fuelType).toBe("E5");
     expect(lat).toBe(52);
     expect(lng).toBe(-1);
     expect(radius).toBe(20);
+  });
+
+  it("still requests geolocation in the background on a restored visit, for the recentre button", async () => {
+    // Without this, a restored session (most reloads after the very first one in a tab, since the
+    // viewport is saved on every change) would never learn the real browser location, so the
+    // recentre button could never appear no matter how far the map had drifted from it.
+    sessionStorage.setItem(
+      MAP_STATE_KEY,
+      JSON.stringify({ lat: 52, lng: -1, radius: 20, mode: "nearby", fuelType: "E5" }),
+    );
+    const getCurrentPosition = stubGeolocation((success) =>
+      success({ coords: { latitude: 52.5, longitude: -1.9 } } as GeolocationPosition),
+    );
+
+    render(<HomePage />);
+
+    await waitFor(() => expect(mockedApi.nearbyStations).toHaveBeenCalled());
+    expect(getCurrentPosition).toHaveBeenCalled();
+    // The fetch/viewport still use the restored coords, not the geolocation fix — geolocation only
+    // feeds the recentre button here, it must not silently move a restored session's map.
+    const [lat] = mockedApi.nearbyStations.mock.calls[0];
+    expect(lat).toBe(52);
   });
 
   it("does not let a different saved 'usual fuel' preference override the restored fuel type", async () => {
