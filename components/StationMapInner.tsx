@@ -6,6 +6,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Station } from "@/lib/types";
 import { FUEL_SHORT_LABELS, FUEL_COLORS } from "@/lib/types";
+import { usePreferences, useResolvedTheme } from "@/lib/preferences";
 
 interface Props {
   stations: Station[];
@@ -238,6 +239,9 @@ export default function StationMapInner({
   onMapMove,
 }: Props) {
   const initialCenter: [number, number] = center ?? [51.5074, -0.1278];
+  const [prefs] = usePreferences();
+  const resolvedTheme = useResolvedTheme(prefs.theme);
+  const tileSlug = resolvedTheme === "light" ? "light_all" : "dark_all";
 
   return (
     <MapContainer
@@ -247,7 +251,7 @@ export default function StationMapInner({
       className="map-container"
     >
       <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        url={`https://{s}.basemaps.cartocdn.com/${tileSlug}/{z}/{x}/{y}{r}.png`}
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         subdomains="abcd"
         maxZoom={19}

@@ -97,6 +97,23 @@ export default function SettingsPage() {
         </label>
       </div>
 
+      <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: 4 }}>Appearance</h2>
+      <div className="fuel-tabs" style={{ marginBottom: 32 }}>
+        {(["system", "light", "dark"] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            className={`fuel-tab${prefs.theme === option ? " active" : ""}`}
+            onClick={() => {
+              updatePrefs({ theme: option });
+              flashSaved();
+            }}
+          >
+            {option === "system" ? "System" : option === "light" ? "Light" : "Dark"}
+          </button>
+        ))}
+      </div>
+
       <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: 4 }}>Your car</h2>
       <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: 16 }}>
         Used to estimate whether driving to a cheaper station is actually worth it, factoring in the fuel it

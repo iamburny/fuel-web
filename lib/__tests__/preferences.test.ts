@@ -1,10 +1,11 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
-import { usePreferences } from "@/lib/preferences";
+import { usePreferences, useResolvedTheme, __resetPreferencesStoreForTests } from "@/lib/preferences";
 
 const STORAGE_KEY = "fuel-preferences";
 
 beforeEach(() => {
   localStorage.clear();
+  __resetPreferencesStoreForTests();
 });
 
 describe("usePreferences", () => {
@@ -25,7 +26,7 @@ describe("usePreferences", () => {
   it("falls back to defaults when nothing is saved", async () => {
     const { result } = renderHook(() => usePreferences());
     await waitFor(() => {
-      expect(result.current[0]).toEqual({ fuelType: "E10", useLongFuelNames: false });
+      expect(result.current[0]).toEqual({ fuelType: "E10", useLongFuelNames: false, theme: "system" });
     });
   });
 
@@ -70,7 +71,55 @@ describe("usePreferences", () => {
     localStorage.setItem(STORAGE_KEY, "{not valid json");
     const { result } = renderHook(() => usePreferences());
     await waitFor(() => {
-      expect(result.current[0]).toEqual({ fuelType: "E10", useLongFuelNames: false });
+      expect(result.current[0]).toEqual({ fuelType: "E10", useLongFuelNames: false, theme: "system" });
     });
+  });
+
+  it("update() persists an explicit theme choice", async () => {
+    const { result } = renderHook(() => usePreferences());
+    await waitFor(() => expect(result.current[0].fuelType).toBe("E10"));
+
+    act(() => {
+      result.current[1]({ theme: "light" });
+    });
+
+    expect(result.current[0].theme).toBe("light");
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
+    expect(stored).toMatchObject({ theme: "light" });
+  });
+});
+
+describe("useResolvedTheme", () => {
+  const originalMatchMedia = window.matchMedia;
+
+  function mockMatchMedia(prefersLight: boolean) {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes("light") ? prefersLight : !prefersLight,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia;
+  }
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
+  it("resolves an explicit 'light' preference regardless of OS setting", async () => {
+    mockMatchMedia(false);
+    const { result } = renderHook(() => useResolvedTheme("light"));
+    await waitFor(() => expect(result.current).toBe("light"));
+  });
+
+  it("resolves an explicit 'dark' preference regardless of OS setting", async () => {
+    mockMatchMedia(true);
+    const { result } = renderHook(() => useResolvedTheme("dark"));
+    await waitFor(() => expect(result.current).toBe("dark"));
+  });
+
+  it("follows the OS preference when set to 'system'", async () => {
+    mockMatchMedia(true);
+    const { result } = renderHook(() => useResolvedTheme("system"));
+    await waitFor(() => expect(result.current).toBe("light"));
   });
 });

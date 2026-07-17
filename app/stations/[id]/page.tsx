@@ -327,7 +327,7 @@ function AmenitiesSection({ amenities }: { amenities?: Amenities | null }) {
           <span
             key={key}
             style={{
-              background: "var(--card-bg, #1a1a2e)",
+              background: "var(--bg-elevated)",
               border: "1px solid var(--border)",
               padding: "6px 14px",
               borderRadius: 6,
