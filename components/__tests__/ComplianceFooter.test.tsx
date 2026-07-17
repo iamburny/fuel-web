@@ -20,7 +20,7 @@ describe("ComplianceFooter", () => {
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute(
       "href",
-      "https://www.fuel-finder.service.gov.uk/report-discrepancy",
+      "https://www.fuel-finder.service.gov.uk/",
     );
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");

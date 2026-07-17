@@ -166,11 +166,35 @@ export const FUEL_SHORT_LABELS: Record<string, string> = {
   HVO: "HVO",
 };
 
+/**
+ * Loosely follows real UK fuel pump nozzle colour conventions (green = unleaded, black = diesel)
+ * — kept identical to the Android app's FuelTypes.COLORS so both platforms brand fuel types the
+ * same way.
+ */
 export const FUEL_COLORS: Record<string, string> = {
-  E10: "#22c55e", // green
-  E5: "#3b82f6", // blue
-  B7_STANDARD: "#f59e0b", // amber
-  B7_PREMIUM: "#ef4444", // red
-  B10: "#a855f7", // purple
-  HVO: "#14b8a6", // teal
+  E10: "#22c55e", // green — unleaded
+  E5: "#3b82f6", // blue — super unleaded
+  B7_STANDARD: "#111827", // near-black — diesel
+  B7_PREMIUM: "#4b5563", // dark grey — premium/super diesel
+  B10: "#a855f7", // purple — biodiesel
+  HVO: "#14b8a6", // teal — HVO
 };
+
+/**
+ * Foreground-safe variant of FUEL_COLORS, for use as text/border/line colour directly on this
+ * site's dark background. FUEL_COLORS' diesel values are intentionally near-black/dark-grey to
+ * match real pump nozzle colours when used as a *solid fill* with white text on top (the active
+ * fuel tab, map price-chip pins) — but that same near-black is illegible as foreground text on a
+ * background that's already dark. Only the two diesel entries differ from FUEL_COLORS; the other
+ * four are already light enough to read as text.
+ */
+export const FUEL_TEXT_COLORS: Record<string, string> = {
+  ...FUEL_COLORS,
+  B7_STANDARD: "#9ca3af", // light grey — legible where FUEL_COLORS' near-black would vanish
+  B7_PREMIUM: "#d1d5db", // lighter grey — kept visually distinct from B7_STANDARD's tint
+};
+
+/** Fuel type label respecting the long/short-name preference (mirrors Android's fuelLabel()). */
+export function fuelLabel(type: string, useLong: boolean): string {
+  return useLong ? FUEL_LABELS[type] ?? type : FUEL_SHORT_LABELS[type] ?? type;
+}

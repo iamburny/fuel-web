@@ -3,14 +3,16 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import type { NationalAverage, TrendPoint, FuelType } from "@/lib/types";
-import { FUEL_LABELS, FUEL_COLORS } from "@/lib/types";
+import { FUEL_TEXT_COLORS, fuelLabel } from "@/lib/types";
+import { usePreferences } from "@/lib/preferences";
 import FuelTabs from "@/components/FuelTabs";
 import ComplianceFooter from "@/components/ComplianceFooter";
 
 export default function PricesPage() {
+  const [prefs] = usePreferences();
   const [averages, setAverages] = useState<NationalAverage[]>([]);
   const [trend, setTrend] = useState<TrendPoint[]>([]);
-  const [fuelType, setFuelType] = useState<FuelType>("E10");
+  const [fuelType, setFuelType] = useState<FuelType>(prefs.fuelType);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
 
@@ -34,7 +36,7 @@ export default function PricesPage() {
         <p>National statistics from the Government Fuel Finder scheme</p>
       </div>
 
-      <FuelTabs selected={fuelType} onChange={setFuelType} />
+      <FuelTabs selected={fuelType} onChange={setFuelType} useLongFuelNames={prefs.useLongFuelNames} />
 
       {loading ? (
         <div className="spinner" />
@@ -43,7 +45,7 @@ export default function PricesPage() {
           {/* National average stats */}
           {avg && (
             <div className="stats-row">
-              <StatCard label="National Average" value={`${avg.avg_price_pence.toFixed(1)}p`} color={FUEL_COLORS[fuelType]} />
+              <StatCard label="National Average" value={`${avg.avg_price_pence.toFixed(1)}p`} color={FUEL_TEXT_COLORS[fuelType]} />
               <StatCard label="Cheapest" value={`${avg.min_price_pence.toFixed(1)}p`} color="#22c55e" />
               <StatCard label="Most Expensive" value={`${avg.max_price_pence.toFixed(1)}p`} color="#ef4444" />
               <StatCard label="Stations Reporting" value={avg.station_count.toLocaleString()} color="var(--text-primary)" />
@@ -59,11 +61,11 @@ export default function PricesPage() {
               .sort((a, b) => a.avg_price_pence - b.avg_price_pence)
               .map((a) => (
                 <div className="stat-card" key={a.fuel_type} style={{
-                  borderColor: a.fuel_type === fuelType ? FUEL_COLORS[a.fuel_type] || "var(--accent)" : "var(--border)",
+                  borderColor: a.fuel_type === fuelType ? FUEL_TEXT_COLORS[a.fuel_type] || "var(--accent)" : "var(--border)",
                   cursor: "pointer",
                 }} onClick={() => setFuelType(a.fuel_type as FuelType)}>
-                  <div className="label">{FUEL_LABELS[a.fuel_type] || a.fuel_type}</div>
-                  <div className="value" style={{ color: FUEL_COLORS[a.fuel_type] || "var(--accent)" }}>
+                  <div className="label">{fuelLabel(a.fuel_type, prefs.useLongFuelNames)}</div>
+                  <div className="value" style={{ color: FUEL_TEXT_COLORS[a.fuel_type] || "var(--accent)" }}>
                     {a.avg_price_pence.toFixed(1)}<span style={{ fontSize: "0.6em", color: "var(--text-muted)" }}>p</span>
                   </div>
                   <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: 4, fontFamily: "var(--font-mono)" }}>
@@ -76,7 +78,7 @@ export default function PricesPage() {
           {/* Trend chart */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <h2 style={{ fontSize: "1.2rem", fontWeight: 600 }}>
-              {FUEL_LABELS[fuelType] || fuelType} — Daily Trend
+              {fuelLabel(fuelType, prefs.useLongFuelNames)} — Daily Trend
             </h2>
             <div className="fuel-tabs" style={{ marginBottom: 0 }}>
               {[7, 30, 90].map((d) => (
@@ -122,7 +124,7 @@ function TrendChart({ trend, fuelType }: { trend: TrendPoint[]; fuelType: string
   const min = Math.min(...prices) - 0.5;
   const max = Math.max(...prices) + 0.5;
   const range = max - min || 1;
-  const color = FUEL_COLORS[fuelType] || "var(--accent)";
+  const color = FUEL_TEXT_COLORS[fuelType] || "var(--accent)";
 
   // SVG line chart
   const w = 800;

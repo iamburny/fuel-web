@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import type { Station, PriceHistoryPoint, Amenities, OpeningHours, DayHours } from "@/lib/types";
-import { FUEL_LABELS, FUEL_COLORS } from "@/lib/types";
+import type { Station, PriceHistoryPoint, NationalAverage, Amenities, OpeningHours, DayHours } from "@/lib/types";
+import { FUEL_TEXT_COLORS, fuelLabel } from "@/lib/types";
+import { usePreferences } from "@/lib/preferences";
+import { haversineMiles, estimateDriveCostPounds } from "@/lib/fuelCost";
 import FuelTabs from "@/components/FuelTabs";
 import StationMap from "@/components/StationMap";
 import ComplianceFooter from "@/components/ComplianceFooter";
@@ -14,11 +16,14 @@ export default function StationDetailPage() {
   const router = useRouter();
   const id = Number(params.id);
 
+  const [prefs] = usePreferences();
   const [station, setStation] = useState<Station | null>(null);
   const [history, setHistory] = useState<PriceHistoryPoint[]>([]);
-  const [fuelType, setFuelType] = useState("E10");
+  const [averages, setAverages] = useState<NationalAverage[]>([]);
+  const [fuelType, setFuelType] = useState<string>(prefs.fuelType);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
+  const [distanceMiles, setDistanceMiles] = useState<number | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -30,12 +35,37 @@ export default function StationDetailPage() {
       }
       setLoading(false);
     });
+    api.averages().then((res) => setAverages(res.averages)).catch(() => setAverages([]));
   }, [id]);
 
   useEffect(() => {
     if (!station) return;
     api.priceHistory(id, fuelType, days).then((res) => setHistory(res.history)).catch(() => setHistory([]));
   }, [id, fuelType, days, station]);
+
+  // /api/stations/:id never returns distance_miles (only /nearby and /cheapest do), so it's
+  // computed client-side against the browser's current location instead — same fix applied on
+  // the Android app's Detail screen. Only asked for when it'd actually be used (the drive-cost
+  // estimate needs MPG + tank capacity), so we don't prompt for location on every station visit.
+  useEffect(() => {
+    if (!station || prefs.mpg == null || prefs.tankCapacityLitres == null) return;
+    if (!("geolocation" in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setDistanceMiles(
+          haversineMiles(pos.coords.latitude, pos.coords.longitude, station.latitude, station.longitude),
+        );
+      },
+      () => {},
+      { timeout: 5000 },
+    );
+  }, [station, prefs.mpg, prefs.tankCapacityLitres]);
+
+  const preferredPrice = station?.prices.find((p) => p.fuel_type === prefs.fuelType)?.price_pence;
+  const driveCostPounds =
+    distanceMiles != null && prefs.mpg != null && preferredPrice != null
+      ? estimateDriveCostPounds(distanceMiles, prefs.mpg, preferredPrice)
+      : null;
 
   if (loading) return <div className="container"><div className="spinner" /></div>;
   if (!station) return <div className="container"><p>Station not found.</p></div>;
@@ -99,8 +129,13 @@ export default function StationDetailPage() {
           </p>
         )}
 
-        {station.distance_miles != null && (
-          <p style={{ marginTop: 4 }}>{station.distance_miles.toFixed(1)} miles away</p>
+        {distanceMiles != null && (
+          <p style={{ marginTop: 4 }}>{distanceMiles.toFixed(1)} miles away</p>
+        )}
+        {driveCostPounds != null && (
+          <p style={{ marginTop: 4, color: "var(--accent)" }}>
+            Est. £{driveCostPounds.toFixed(2)} in fuel to get here
+          </p>
         )}
       </div>
 
@@ -113,26 +148,38 @@ export default function StationDetailPage() {
       />
 
       {/* Fuel tabs */}
-      <FuelTabs selected={fuelType} onChange={(t) => setFuelType(t)} />
+      <FuelTabs selected={fuelType} onChange={(t) => setFuelType(t)} useLongFuelNames={prefs.useLongFuelNames} />
 
       {/* Current prices — all presented unmodified per Fair Use Policy */}
       <h2 style={{ fontSize: "1.2rem", fontWeight: 600, marginBottom: 16 }}>Current Prices</h2>
       <div className="stats-row">
         {station.prices
           .sort((a, b) => a.price_pence - b.price_pence)
-          .map((p) => (
-            <div className="stat-card" key={p.fuel_type} style={{
-              borderColor: p.fuel_type === fuelType ? FUEL_COLORS[p.fuel_type] || "var(--accent)" : "var(--border)",
-            }}>
-              <div className="label">{FUEL_LABELS[p.fuel_type] || p.fuel_type}</div>
-              <div className="value" style={{ color: FUEL_COLORS[p.fuel_type] || "var(--accent)" }}>
-                {p.price_pence.toFixed(1)}<span style={{ fontSize: "0.6em", color: "var(--text-muted)" }}>p</span>
+          .map((p) => {
+            const avg = averages.find((a) => a.fuel_type === p.fuel_type)?.avg_price_pence;
+            const delta = avg != null ? p.price_pence - avg : null;
+            return (
+              <div className="stat-card" key={p.fuel_type} style={{
+                borderColor: p.fuel_type === fuelType ? FUEL_TEXT_COLORS[p.fuel_type] || "var(--accent)" : "var(--border)",
+              }}>
+                <div className="label">{fuelLabel(p.fuel_type, prefs.useLongFuelNames)}</div>
+                <div className="value" style={{ color: FUEL_TEXT_COLORS[p.fuel_type] || "var(--accent)" }}>
+                  {p.price_pence.toFixed(1)}<span style={{ fontSize: "0.6em", color: "var(--text-muted)" }}>p</span>
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 6, fontFamily: "var(--font-mono)" }}>
+                  {new Date(p.reported_at).toLocaleString("en-GB")}
+                </div>
+                {delta != null && (
+                  <div style={{
+                    fontSize: "0.75rem", marginTop: 4, fontFamily: "var(--font-mono)", fontWeight: 600,
+                    color: delta <= 0 ? "#22c55e" : "#ef4444",
+                  }}>
+                    {delta >= 0 ? "+" : ""}{delta.toFixed(1)}p vs national avg
+                  </div>
+                )}
               </div>
-              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 6, fontFamily: "var(--font-mono)" }}>
-                {new Date(p.reported_at).toLocaleString("en-GB")}
-              </div>
-            </div>
-          ))}
+            );
+          })}
       </div>
 
       {station.prices.length === 0 && (
@@ -148,7 +195,7 @@ export default function StationDetailPage() {
       {/* Price history trend */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "32px 0 16px" }}>
         <h2 style={{ fontSize: "1.2rem", fontWeight: 600 }}>
-          Price Trend — {FUEL_LABELS[fuelType] || fuelType}
+          Price Trend — {fuelLabel(fuelType, prefs.useLongFuelNames)}
         </h2>
         <div className="fuel-tabs" style={{ marginBottom: 0 }}>
           {[7, 30, 90].map((d) => (
@@ -182,7 +229,7 @@ function PriceTrendChart({ history, fuelType }: { history: PriceHistoryPoint[]; 
   const min = Math.min(...prices) - 0.5;
   const max = Math.max(...prices) + 0.5;
   const range = max - min || 1;
-  const color = FUEL_COLORS[fuelType] || "var(--accent)";
+  const color = FUEL_TEXT_COLORS[fuelType] || "var(--accent)";
 
   const w = 800;
   const h = 240;

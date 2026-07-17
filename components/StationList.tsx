@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Station } from "@/lib/types";
+import { FUEL_TEXT_COLORS } from "@/lib/types";
 
 export default function StationList({
   stations,
@@ -32,7 +33,7 @@ export default function StationList({
             </div>
             <div className="station-price">
               {price ? (
-                <span className="price-big">
+                <span className="price-big" style={{ color: FUEL_TEXT_COLORS[fuelType] }}>
                   {price.price_pence.toFixed(1)}
                   <span className="price-unit">p</span>
                 </span>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { Station, FuelType } from "@/lib/types";
+import { usePreferences } from "@/lib/preferences";
 import FuelTabs from "@/components/FuelTabs";
 import StationList from "@/components/StationList";
 import StationMap from "@/components/StationMap";
@@ -33,8 +34,11 @@ export default function HomePage() {
 
   // Lazy initializers read sessionStorage once on first client mount
   const [saved] = useState(loadMapState);
+  const [prefs] = usePreferences();
   const [stations, setStations] = useState<Station[]>([]);
-  const [fuelType, setFuelType] = useState<FuelType>(saved?.fuelType ?? "E10");
+  // Restored map-state (within this tab session) wins over the saved "usual fuel" preference,
+  // which only applies to a genuinely fresh visit.
+  const [fuelType, setFuelType] = useState<FuelType>(saved?.fuelType ?? prefs.fuelType);
   const [search, setSearch] = useState("");
   const [initialLoad, setInitialLoad] = useState(true);
   const [coords, setCoords] = useState(saved ? { lat: saved.lat, lng: saved.lng } : { lat: 51.5074, lng: -0.1278 });
@@ -114,7 +118,7 @@ export default function HomePage() {
 
       {/* Fuel type + mode toggle */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-        <FuelTabs selected={fuelType} onChange={(t) => setFuelType(t)} />
+        <FuelTabs selected={fuelType} onChange={(t) => setFuelType(t)} useLongFuelNames={prefs.useLongFuelNames} />
         <div className="fuel-tabs">
           <button
             className={`fuel-tab ${mode === "nearby" ? "active" : ""}`}

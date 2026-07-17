@@ -7,6 +7,7 @@ import { clsx } from "clsx";
 const links = [
   { href: "/", label: "Nearby" },
   { href: "/prices", label: "Prices & Trends" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export default function Nav() {

@@ -1,4 +1,6 @@
-const DISCREPANCY_URL = "https://www.fuel-finder.service.gov.uk/report-discrepancy";
+// The specific report-discrepancy path 404s (confirmed via curl) — same issue fixed on the
+// Android app. Points at the working base domain until the real report URL is known.
+const DISCREPANCY_URL = "https://www.fuel-finder.service.gov.uk/";
 
 export default function ComplianceFooter() {
   return (
