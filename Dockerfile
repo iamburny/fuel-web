@@ -24,9 +24,11 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Next.js standalone output includes only what's needed
+# Next.js standalone output includes only what's needed. public/ is a plain static
+# folder, not part of the standalone bundle, so it must be copied explicitly.
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
+COPY --from=build /app/public ./public
 
 EXPOSE 3000
 
