@@ -169,9 +169,10 @@ function TrendChart({ trend, fuelType }: { trend: TrendPoint[]; fuelType: string
         {/* Line */}
         <path d={linePath} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
 
-        {/* Dots on hover */}
+        {/* Dots — always visible, not just a hover affordance: with only one point in range the
+            line path has no segment to draw at all, so the dot is the only visible data. */}
         {points.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r={3} fill={color} opacity={0}>
+          <circle key={i} cx={p.x} cy={p.y} r={3} fill={color}>
             <title>
               {p.date}: {p.avg_price_pence.toFixed(1)}p avg ({p.observations} observations)
             </title>
