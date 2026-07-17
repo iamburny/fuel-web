@@ -30,8 +30,11 @@ const mockedApi = api as unknown as {
 const MAP_STATE_KEY = "fuel-map-state";
 const PREFS_KEY = "fuel-preferences";
 
-function stubGeolocation() {
-  const getCurrentPosition = vi.fn();
+// Simulates denied/unavailable by default — the app now waits for geolocation to settle (success
+// or failure) before its first fetch, so a mock that never calls back would hang that fetch
+// forever. Tests that want a real GPS fix pass their own implementation instead.
+function stubGeolocation(impl?: (success: PositionCallback, error?: PositionErrorCallback) => void) {
+  const getCurrentPosition = vi.fn(impl ?? ((_success, error) => error?.({} as GeolocationPositionError)));
   Object.defineProperty(window.navigator, "geolocation", {
     value: { getCurrentPosition },
     configurable: true,
@@ -71,6 +74,40 @@ describe("HomePage — fresh visit (no saved map state)", () => {
       const lastCall = mockedApi.nearbyStations.mock.calls.at(-1);
       expect(lastCall?.[3]).toBe("B7_STANDARD");
     });
+  });
+
+  it("waits for geolocation to settle before fetching, instead of fetching against London first", async () => {
+    let resolveGeo: (() => void) | null = null;
+    stubGeolocation((success) => {
+      resolveGeo = () =>
+        success({ coords: { latitude: 52.5, longitude: -1.9 } } as GeolocationPosition);
+    });
+
+    render(<HomePage />);
+
+    // Give pending effects/microtasks a beat — the fetch must not have fired yet, since
+    // geolocation hasn't resolved (this is the exact bug being fixed: a first fetch landing
+    // before the browser location is known).
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(mockedApi.nearbyStations).not.toHaveBeenCalled();
+
+    resolveGeo!();
+
+    await waitFor(() => expect(mockedApi.nearbyStations).toHaveBeenCalled());
+    expect(mockedApi.nearbyStations).toHaveBeenCalledTimes(1);
+    const [lat, lng] = mockedApi.nearbyStations.mock.calls[0];
+    expect(lat).toBe(52.5);
+    expect(lng).toBe(-1.9);
+  });
+
+  it("falls back to London and still fetches once geolocation is denied/unavailable", async () => {
+    stubGeolocation((_success, error) => error?.({} as GeolocationPositionError));
+    render(<HomePage />);
+
+    await waitFor(() => expect(mockedApi.nearbyStations).toHaveBeenCalled());
+    const [lat, lng] = mockedApi.nearbyStations.mock.calls[0];
+    expect(lat).toBeCloseTo(51.5074);
+    expect(lng).toBeCloseTo(-0.1278);
   });
 });
 

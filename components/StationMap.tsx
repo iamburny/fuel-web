@@ -20,6 +20,10 @@ interface Props {
   fitBounds?: boolean;
   onStationClick?: (id: number) => void;
   onMapMove?: (lat: number, lng: number, radiusMiles: number) => void;
+  recenterTo?: [number, number];
+  recenterToken?: number;
+  showRecenterButton?: boolean;
+  onRecenter?: () => void;
 }
 
 export default function StationMap(props: Props) {

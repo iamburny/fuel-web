@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { LocateFixed } from "lucide-react";
 import type { Station } from "@/lib/types";
 import { FUEL_SHORT_LABELS, FUEL_COLORS } from "@/lib/types";
 import { usePreferences, useResolvedTheme } from "@/lib/preferences";
@@ -16,6 +17,12 @@ interface Props {
   fitBounds?: boolean;
   onStationClick?: (id: number) => void;
   onMapMove?: (lat: number, lng: number, radiusMiles: number) => void;
+  /** Jumps the map to this point whenever recenterToken changes — a one-shot imperative move,
+   *  since MapContainer's center prop only applies on mount. Paired with showRecenterButton. */
+  recenterTo?: [number, number];
+  recenterToken?: number;
+  showRecenterButton?: boolean;
+  onRecenter?: () => void;
 }
 
 /** Build a divIcon showing the price in a small coloured tag. */
@@ -66,6 +73,24 @@ function FitToStations({ stations, fallback, enabled }: { stations: Station[]; f
     const bounds = L.latLngBounds(stations.map((s) => [s.latitude, s.longitude] as [number, number]));
     map.fitBounds(bounds, { padding: [40, 40] });
   }, [stations, map, fallback, enabled]);
+
+  return null;
+}
+
+/** Jumps the map to `center` whenever `token` changes — skips its own first run, since
+ *  FitToStations already establishes the initial camera position on mount. */
+function RecenterOnToken({ center, token }: { center: [number, number]; token: number }) {
+  const map = useMap();
+  const isFirstRun = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+    map.setView(center, map.getZoom());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   return null;
 }
@@ -237,6 +262,10 @@ export default function StationMapInner({
   fitBounds = true,
   onStationClick,
   onMapMove,
+  recenterTo,
+  recenterToken,
+  showRecenterButton,
+  onRecenter,
 }: Props) {
   const initialCenter: [number, number] = center ?? [51.5074, -0.1278];
   const [prefs] = usePreferences();
@@ -268,6 +297,38 @@ export default function StationMapInner({
 
       <FitToStations stations={stations} fallback={initialCenter} enabled={fitBounds} />
       {onMapMove && <MapMoveHandler onMapMove={onMapMove} />}
+      {recenterTo && recenterToken != null && (
+        <RecenterOnToken center={recenterTo} token={recenterToken} />
+      )}
+
+      {showRecenterButton && onRecenter && (
+        <button
+          type="button"
+          onClick={onRecenter}
+          aria-label="Recentre on my location"
+          title="Recentre on my location"
+          className="leaflet-bar"
+          style={{
+            position: "absolute",
+            bottom: 20,
+            left: 10,
+            zIndex: 1000,
+            width: 34,
+            height: 34,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "var(--bg-card)",
+            color: "var(--text-primary)",
+            border: "2px solid rgba(0,0,0,0.2)",
+            borderRadius: 4,
+            cursor: "pointer",
+            padding: 0,
+          }}
+        >
+          <LocateFixed size={18} />
+        </button>
+      )}
     </MapContainer>
   );
 }

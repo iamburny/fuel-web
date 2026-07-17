@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { Station, FuelType } from "@/lib/types";
 import { usePreferences } from "@/lib/preferences";
+import { haversineMiles } from "@/lib/fuelCost";
 import FuelTabs from "@/components/FuelTabs";
 import StationList from "@/components/StationList";
 import StationMap from "@/components/StationMap";
@@ -49,6 +50,17 @@ export default function HomePage() {
   // defaults before we've had a chance to read it" and "don't apply the usual-fuel preference
   // over a just-restored position" below.
   const [restoreStatus, setRestoreStatus] = useState<"pending" | "restored" | "fresh">("pending");
+  // 'pending' until a fresh visit's geolocation request has settled (success, denial, timeout, or
+  // "not available") — gates the first fetch below so it never fires against the London fallback
+  // only to immediately refire once the real position lands a moment later.
+  const [locationStatus, setLocationStatus] = useState<"pending" | "resolved">("pending");
+  // The actual detected GPS fix (never the London fallback) — only set on a real success, so the
+  // recentre button/logic below can tell "no location known yet" apart from "we have one".
+  const [browserLocation, setBrowserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  // Bumped to trigger a one-shot map jump back to browserLocation (see StationMapInner's
+  // recenterToken prop) — plain state changes to `coords` can't move the camera post-mount,
+  // since MapContainer's center prop is initial-only.
+  const [recenterToken, setRecenterToken] = useState(0);
 
   // Restore saved map state (this tab session) once on mount. Deliberately done in an effect, not
   // a useState initializer: sessionStorage doesn't exist during SSR, so reading it in an
@@ -87,16 +99,29 @@ export default function HomePage() {
     }
   }, [restoreStatus, prefs.fuelType]);
 
-  // Only request geolocation if there's no saved state to restore
+  // Resolve geolocation before the first fetch — a saved viewport already has a good position, so
+  // only a genuinely fresh visit requests it (same as before this gate existed, which also avoids
+  // re-prompting for permission every time a restored session is revisited).
   useEffect(() => {
-    if (restoreStatus !== "fresh") return;
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => {}, // keep default
-        { timeout: 5000 },
-      );
+    if (restoreStatus !== "fresh") {
+      if (restoreStatus === "restored") setLocationStatus("resolved");
+      return;
     }
+    if (!("geolocation" in navigator)) {
+      setLocationStatus("resolved");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setCoords(loc);
+        setBrowserLocation(loc);
+        setFitBounds(false); // centre on the real position, not a fit-to-stations view
+        setLocationStatus("resolved");
+      },
+      () => setLocationStatus("resolved"), // denied/unavailable — keep the London default
+      { timeout: 5000 },
+    );
   }, [restoreStatus]);
 
   // Fetch stations — keeps map mounted during refresh, only shows spinner on first load
@@ -131,8 +156,15 @@ export default function HomePage() {
     }
   }, [coords, fuelType, search, mode, radius]);
 
-  // Re-enable fitBounds when search or mode changes (but not on map drag)
+  // Re-enable fitBounds when search or mode changes (but not on map drag). Skips its own mount
+  // run — effects fire once on mount regardless of deps, which would otherwise stomp the "centre
+  // on the browser location" / "keep the restored viewport" decisions the effects above make.
+  const skipFitBoundsResetRef = useRef(true);
   useEffect(() => {
+    if (skipFitBoundsResetRef.current) {
+      skipFitBoundsResetRef.current = false;
+      return;
+    }
     setFitBounds(true);
   }, [search, mode]);
 
@@ -142,14 +174,29 @@ export default function HomePage() {
     setCoords({ lat, lng });
   }, []);
 
+  const handleRecenter = useCallback(() => {
+    if (!browserLocation) return;
+    setFitBounds(false);
+    setCoords(browserLocation);
+    setRecenterToken((t) => t + 1);
+  }, [browserLocation]);
+
+  // Only offer the recentre button once we actually know the browser location, and only once the
+  // viewport has genuinely drifted from it (dragging, a search, or Cheapest mode) — not for every
+  // sub-mile jitter between the GPS fix and the map's own rounding.
+  const showRecenterButton =
+    browserLocation != null &&
+    haversineMiles(coords.lat, coords.lng, browserLocation.lat, browserLocation.lng) > 0.3;
+
   useEffect(() => {
-    // Wait until the sessionStorage restore attempt has resolved, so this doesn't fire once
-    // against the stale London/E10 defaults and then immediately again against the restored
-    // values — the same "flash" trade-off already accepted for the geolocation-driven refetch.
+    // Wait until the sessionStorage restore attempt AND (for a fresh visit) the geolocation
+    // request have both settled, so this never fires once against the London fallback and then
+    // immediately again a moment later against the real position.
     if (restoreStatus === "pending") return;
+    if (locationStatus === "pending") return;
     const timeout = setTimeout(fetchData, search ? 400 : 0);
     return () => clearTimeout(timeout);
-  }, [fetchData, restoreStatus]);
+  }, [fetchData, restoreStatus, locationStatus]);
 
   return (
     <div className="container">
@@ -198,6 +245,10 @@ export default function HomePage() {
             fitBounds={fitBounds}
             onStationClick={(id) => router.push(`/stations/${id}`)}
             onMapMove={handleMapMove}
+            recenterTo={browserLocation ? [browserLocation.lat, browserLocation.lng] : undefined}
+            recenterToken={recenterToken}
+            showRecenterButton={showRecenterButton}
+            onRecenter={handleRecenter}
           />
 
           {/* List */}
