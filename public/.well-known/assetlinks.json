@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "uk.fueltracker.app",
+      "sha256_cert_fingerprints": [
+        "39:66:1A:44:1D:87:74:13:84:69:84:34:F8:DA:52:55:CB:A1:14:1E:9D:0A:B3:44:DB:ED:23:60:0C:76:0D:76"
+      ]
+    }
+  }
+]
