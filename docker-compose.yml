@@ -10,6 +10,9 @@ services:
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_BASE_URL=https://api.fueltracker.uk
+        # OAuth Web client ID — a public identifier (it's exposed in the client bundle anyway), so
+        # it's committed here for reproducible builds. It is NOT the OAuth client *secret*.
+        - NEXT_PUBLIC_GOOGLE_CLIENT_ID=30196074720-3vou24qgfi898e0lchm4b0plv8a2r9qh.apps.googleusercontent.com
     container_name: fuel-web
     environment:
       - NODE_ENV=production

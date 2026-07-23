@@ -3,6 +3,7 @@ import "./globals.css";
 import Nav from "@/components/Nav";
 import ComplianceFooter from "@/components/ComplianceFooter";
 import ThemeSync from "@/components/ThemeSync";
+import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
   title: "fueltracker.uk — Live Petrol & Diesel Prices",
@@ -30,9 +31,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-        <ThemeSync />
-        <Nav />
-        <main>{children}</main>
+        <Providers>
+          <ThemeSync />
+          <Nav />
+          <main>{children}</main>
+        </Providers>
       </body>
     </html>
   );

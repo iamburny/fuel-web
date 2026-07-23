@@ -9,6 +9,12 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+// StationList now renders a FavouriteButton, which uses the app-router useRouter — provide a stub
+// so the component renders outside a Next router context.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+}));
+
 const stations = [
   {
     id: 1,

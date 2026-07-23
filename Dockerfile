@@ -16,6 +16,10 @@ COPY . .
 ARG NEXT_PUBLIC_API_BASE_URL=https://api.fueltracker.uk
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 
+# Google Sign-In client ID — also inlined at build time (NEXT_PUBLIC_*)
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID=
+ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
+
 RUN npm run build
 
 # --- Production ---

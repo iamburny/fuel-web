@@ -10,6 +10,7 @@ import { haversineMiles, estimateDriveCostPounds } from "@/lib/fuelCost";
 import FuelTabs from "@/components/FuelTabs";
 import StationMap from "@/components/StationMap";
 import ComplianceFooter from "@/components/ComplianceFooter";
+import FavouriteButton from "@/components/FavouriteButton";
 
 export default function StationDetailPage() {
   const params = useParams();
@@ -91,8 +92,11 @@ export default function StationDetailPage() {
 
       {/* Header */}
       <div className="page-header" style={{ paddingTop: 0 }}>
-        <h1>{station.name}</h1>
-        {station.brand && <p style={{ color: "var(--text-muted)", marginBottom: 4 }}>{station.brand}</p>}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <h1 style={{ margin: 0 }}>{station.name}</h1>
+          <FavouriteButton stationId={station.id} fuelType={fuelType} size={26} />
+        </div>
+        {station.brand && <p style={{ color: "var(--text-muted)", marginBottom: 4, marginTop: 4 }}>{station.brand}</p>}
 
         {/* Status badges */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>

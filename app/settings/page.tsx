@@ -5,9 +5,13 @@ import { usePreferences } from "@/lib/preferences";
 import FuelTabs from "@/components/FuelTabs";
 import type { FuelType } from "@/lib/types";
 import ComplianceFooter from "@/components/ComplianceFooter";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
+import { useAuth } from "@/lib/auth";
+import { resetFavourites } from "@/lib/favourites";
 
 export default function SettingsPage() {
   const [prefs, updatePrefs] = usePreferences();
+  const { isLoggedIn, email, logout } = useAuth();
   const [justSaved, setJustSaved] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -36,6 +40,42 @@ export default function SettingsPage() {
       <div className="page-header">
         <h1>Preferences</h1>
         <p>Personalise fuel type display and estimated driving costs</p>
+      </div>
+
+      <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: 4 }}>Account</h2>
+      <div className="card" style={{ marginBottom: 32 }}>
+        {isLoggedIn ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ fontSize: "0.9rem" }}>
+              Signed in{email ? ` as ${email}` : ""}.
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                resetFavourites();
+              }}
+              style={{
+                background: "none",
+                border: "1px solid var(--border)",
+                borderRadius: 6,
+                padding: "6px 12px",
+                color: "var(--text-primary)",
+                cursor: "pointer",
+                fontSize: "0.85rem",
+              }}
+            >
+              Sign out
+            </button>
+          </div>
+        ) : (
+          <div>
+            <p style={{ marginBottom: 12, fontSize: "0.9rem", color: "var(--text-muted)" }}>
+              Sign in to save favourite stations and get price-drop alerts.
+            </p>
+            <GoogleSignInButton />
+          </div>
+        )}
       </div>
 
       <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: 4 }}>Your usual fuel</h2>

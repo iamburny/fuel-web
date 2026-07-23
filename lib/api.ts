@@ -5,7 +5,9 @@ import type {
   TrendsResponse,
   PriceHistoryResponse,
   Station,
+  Favourite,
 } from "./types";
+import { getToken } from "./authToken";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL || "http://localhost:8000";
 
@@ -60,4 +62,54 @@ export const api = {
       fuel_type: fuelType,
       days: String(days),
     }),
+};
+
+/** Error carrying the HTTP status, so callers can distinguish 401 (re-auth) from other failures. */
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
+// Authenticated requests: always attach the bearer token (when present) and never cache — these
+// are per-user and must not be served from the ISR cache the public `get()` uses.
+async function authedFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getToken();
+  const res = await fetch(new URL(path, BASE).toString(), {
+    ...init,
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers ?? {}),
+    },
+  });
+  if (!res.ok) throw new ApiError(res.status, `API ${res.status}: ${res.statusText}`);
+  if (res.status === 204) return undefined as T;
+  return res.json();
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  role?: string;
+}
+
+export const authApi = {
+  /** Exchange a Google ID token for the app JWT. */
+  googleLogin: (idToken: string) =>
+    authedFetch<TokenResponse>("/api/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ id_token: idToken }),
+    }),
+};
+
+export const favouritesApi = {
+  list: () => authedFetch<Favourite[]>("/api/favourites/"),
+  add: (stationId: number, fuelType = "E10") =>
+    authedFetch<Favourite>("/api/favourites/", {
+      method: "POST",
+      body: JSON.stringify({ station_id: stationId, fuel_type: fuelType }),
+    }),
+  remove: (id: number) => authedFetch<void>(`/api/favourites/${id}`, { method: "DELETE" }),
 };

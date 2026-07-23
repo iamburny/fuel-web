@@ -69,6 +69,25 @@ export interface StationListResponse {
   stations: Station[];
 }
 
+/** Station summary embedded in a favourite (subset the /api/favourites endpoint joins in). */
+export interface FavouriteStation {
+  id: number;
+  gov_id: string;
+  name: string;
+  brand?: string | null;
+  latitude: number;
+  longitude: number;
+}
+
+export interface Favourite {
+  id: number;
+  station_id: number;
+  fuel_type: string;
+  notify_on_drop: boolean;
+  price_threshold_pence?: number | null;
+  station?: FavouriteStation | null;
+}
+
 export interface CheapestEntry {
   station: Station;
   price_pence: number;

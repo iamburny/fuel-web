@@ -4,15 +4,24 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
+import { useAuth } from "@/lib/auth";
+import { resetFavourites } from "@/lib/favourites";
 
 const links = [
   { href: "/", label: "Nearby" },
   { href: "/prices", label: "Prices & Trends" },
+  { href: "/favourites", label: "Favourites" },
   { href: "/settings", label: "Settings" },
 ];
 
 export default function Nav() {
   const path = usePathname();
+  const { isLoggedIn, email, logout } = useAuth();
+
+  const signOut = () => {
+    logout();
+    resetFavourites();
+  };
 
   return (
     <nav className="nav">
@@ -32,6 +41,17 @@ export default function Nav() {
               {l.label}
             </Link>
           ))}
+          {isLoggedIn && (
+            <button
+              type="button"
+              onClick={signOut}
+              className="nav-link"
+              title={email ? `Signed in as ${email}` : "Sign out"}
+              style={{ background: "none", border: "none", cursor: "pointer" }}
+            >
+              Sign out
+            </button>
+          )}
         </div>
       </div>
     </nav>
