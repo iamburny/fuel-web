@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import "./globals.css";
 import Nav from "@/components/Nav";
-import ComplianceFooter from "@/components/ComplianceFooter";
 import ThemeSync from "@/components/ThemeSync";
 import Providers from "@/components/Providers";
 
@@ -35,6 +35,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ThemeSync />
           <Nav />
           <main>{children}</main>
+          <footer
+            style={{
+              textAlign: "center",
+              padding: "28px 16px",
+              fontSize: "0.8rem",
+              color: "var(--text-muted)",
+            }}
+          >
+            <Link href="/privacy" style={{ color: "inherit" }}>
+              Privacy Policy
+            </Link>
+          </footer>
         </Providers>
       </body>
     </html>
