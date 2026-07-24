@@ -107,6 +107,12 @@ body {
   line-height: 1.6;
 }
 
+/* Browsers use the OS UI font for form controls by default, not the page's font-family — without
+   this, every <button>/<input>/<select> (e.g. Nav's "Sign out") visibly mismatches body text. */
+button, input, select, textarea {
+  font-family: inherit;
+}
+
 a {
   color: var(--accent);
   text-decoration: none;
