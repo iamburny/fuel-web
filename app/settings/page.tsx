@@ -8,6 +8,7 @@ import ComplianceFooter from "@/components/ComplianceFooter";
 import SignInPanel from "@/components/SignInPanel";
 import { useAuth } from "@/lib/auth";
 import { resetFavourites } from "@/lib/favourites";
+import { resetAlerts } from "@/lib/alerts";
 
 export default function SettingsPage() {
   const [prefs, updatePrefs] = usePreferences();
@@ -78,6 +79,7 @@ export default function SettingsPage() {
               onClick={() => {
                 logout();
                 resetFavourites();
+                resetAlerts();
               }}
               style={{
                 background: "none",

@@ -88,6 +88,18 @@ export interface Favourite {
   station?: FavouriteStation | null;
 }
 
+/** An "area alert" — notify me of price drops within a radius of a point (as opposed to a
+ *  per-station Favourite). Mirrors the Android app's area-alerts feature. */
+export interface AlertSubscription {
+  id: number;
+  latitude: number;
+  longitude: number;
+  radius_miles: number;
+  fuel_type: string;
+  notify: boolean;
+  label: string | null;
+}
+
 export interface CheapestEntry {
   station: Station;
   price_pence: number;

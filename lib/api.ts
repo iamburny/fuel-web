@@ -7,6 +7,7 @@ import type {
   HeatmapResponse,
   Station,
   Favourite,
+  AlertSubscription,
 } from "./types";
 import { getToken } from "./authToken";
 
@@ -145,4 +146,20 @@ export const favouritesApi = {
       body: JSON.stringify({ station_id: stationId, fuel_type: fuelType }),
     }),
   remove: (id: number) => authedFetch<void>(`/api/favourites/${id}`, { method: "DELETE" }),
+};
+
+export const alertsApi = {
+  list: () => authedFetch<AlertSubscription[]>("/api/alerts/"),
+  add: (latitude: number, longitude: number, radiusMiles = 10, fuelType = "E10", label: string | null = null) =>
+    authedFetch<AlertSubscription>("/api/alerts/", {
+      method: "POST",
+      body: JSON.stringify({
+        latitude,
+        longitude,
+        radius_miles: radiusMiles,
+        fuel_type: fuelType,
+        label,
+      }),
+    }),
+  remove: (id: number) => authedFetch<void>(`/api/alerts/${id}`, { method: "DELETE" }),
 };

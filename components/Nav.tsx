@@ -6,12 +6,14 @@ import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 import { useAuth } from "@/lib/auth";
 import { resetFavourites } from "@/lib/favourites";
+import { resetAlerts } from "@/lib/alerts";
 
 const links = [
   { href: "/", label: "Nearby" },
   { href: "/prices", label: "Prices & Trends" },
   { href: "/heatmap", label: "Heat Map" },
   { href: "/favourites", label: "Favourites" },
+  { href: "/download", label: "Get the App" },
   { href: "/settings", label: "Settings" },
 ];
 
@@ -22,6 +24,7 @@ export default function Nav() {
   const signOut = () => {
     logout();
     resetFavourites();
+    resetAlerts();
   };
 
   return (
