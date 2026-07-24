@@ -10,6 +10,7 @@ import { resetFavourites } from "@/lib/favourites";
 const links = [
   { href: "/", label: "Nearby" },
   { href: "/prices", label: "Prices & Trends" },
+  { href: "/heatmap", label: "Heat Map" },
   { href: "/favourites", label: "Favourites" },
   { href: "/settings", label: "Settings" },
 ];

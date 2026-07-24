@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { ApiError, authApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { reloadFavourites } from "@/lib/favourites";
@@ -90,6 +91,20 @@ export default function EmailPasswordForm() {
       />
 
       {error && <div style={{ fontSize: "0.85rem", color: "#ef4444" }}>{error}</div>}
+
+      {!isRegister && (
+        <Link
+          href="/reset-password"
+          style={{
+            fontSize: "0.8rem",
+            color: "var(--text-muted)",
+            textDecoration: "none",
+            justifySelf: "start",
+          }}
+        >
+          Forgot password?
+        </Link>
+      )}
 
       <button
         type="submit"

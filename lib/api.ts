@@ -4,6 +4,7 @@ import type {
   AveragesResponse,
   TrendsResponse,
   PriceHistoryResponse,
+  HeatmapResponse,
   Station,
   Favourite,
 } from "./types";
@@ -62,6 +63,9 @@ export const api = {
       fuel_type: fuelType,
       days: String(days),
     }),
+
+  heatmap: (fuelType = "E10") =>
+    get<HeatmapResponse>("/api/prices/heatmap", { fuel_type: fuelType }),
 };
 
 /** Error carrying the HTTP status, so callers can distinguish 401 (re-auth) from other failures. */
@@ -116,6 +120,20 @@ export const authApi = {
     authedFetch<TokenResponse>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
+    }),
+
+  /** Start a password reset — always resolves 200 regardless of whether the email is registered. */
+  requestPasswordReset: (email: string) =>
+    authedFetch<{ ok: boolean }>("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  /** Complete a password reset with the emailed token. Throws ApiError(400) if invalid/expired. */
+  confirmPasswordReset: (token: string, password: string) =>
+    authedFetch<{ ok: boolean }>("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, password }),
     }),
 };
 

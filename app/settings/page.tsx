@@ -42,6 +42,30 @@ export default function SettingsPage() {
         <p>Personalise fuel type display and estimated driving costs</p>
       </div>
 
+      <a
+        href="https://buymeacoffee.com/iamburny"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="card"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          marginBottom: 32,
+          textDecoration: "none",
+          color: "var(--text-primary)",
+          borderColor: "var(--border-accent)",
+        }}
+      >
+        <span aria-hidden style={{ fontSize: "1.4rem" }}>☕</span>
+        <div>
+          <div style={{ fontWeight: 600 }}>Buy me a coffee</div>
+          <div style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
+            Fuel Tracker UK is free and ad-free — support keeps it running
+          </div>
+        </div>
+      </a>
+
       <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: 4 }}>Account</h2>
       <div className="card" style={{ marginBottom: 32 }}>
         {isLoggedIn ? (

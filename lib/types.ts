@@ -129,6 +129,25 @@ export interface TrendsResponse {
   data_notice: string;
 }
 
+/** One grid cell of the GPS price heat map — position is the mean of the cell's stations' coords. */
+export interface HeatmapCell {
+  latitude: number;
+  longitude: number;
+  avg_price_pence: number;
+  delta_pence: number;
+  delta_percent: number;
+  station_count: number;
+}
+
+export interface HeatmapResponse {
+  fuel_type: string;
+  national_avg_price_pence: number;
+  cell_size_degrees: number;
+  cells: HeatmapCell[];
+  discrepancy_report_url: string;
+  data_notice: string;
+}
+
 export interface PriceHistoryPoint {
   price_pence: number;
   reported_at: string;
