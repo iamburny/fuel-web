@@ -413,6 +413,18 @@ a:hover { opacity: 0.8; }
   background: var(--bg-elevated);
 }
 
+.nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  padding: 6px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
 /* ─── Loading spinner ───────────────────────────── */
 
 .spinner {
@@ -443,6 +455,35 @@ a:hover { opacity: 0.8; }
   .card-grid { grid-template-columns: 1fr; }
   .stats-row { grid-template-columns: repeat(2, 1fr); }
   .map-container { height: 280px; }
-  .nav-inner { gap: 16px; }
-  .nav-link { padding: 6px 10px; font-size: 0.8rem; }
+}
+
+/* Nav collapses to a hamburger below 900px — six links + the logo don't comfortably fit any
+   narrower than that, well before the general 768px content breakpoint above kicks in. */
+@media (max-width: 900px) {
+  .nav-inner { gap: 12px; }
+  .nav-toggle { display: flex; }
+
+  .nav-links {
+    display: none;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 2px;
+    max-height: calc(100vh - 60px);
+    overflow-y: auto;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 20px 16px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+  }
+
+  .nav-links.open { display: flex; }
+
+  .nav-link {
+    padding: 12px 14px;
+    font-size: 0.95rem;
+    border-radius: var(--radius-sm);
+  }
 }
