@@ -5,7 +5,7 @@ import { usePreferences } from "@/lib/preferences";
 import FuelTabs from "@/components/FuelTabs";
 import type { FuelType } from "@/lib/types";
 import ComplianceFooter from "@/components/ComplianceFooter";
-import GoogleSignInButton from "@/components/GoogleSignInButton";
+import SignInPanel from "@/components/SignInPanel";
 import { useAuth } from "@/lib/auth";
 import { resetFavourites } from "@/lib/favourites";
 
@@ -73,7 +73,7 @@ export default function SettingsPage() {
             <p style={{ marginBottom: 12, fontSize: "0.9rem", color: "var(--text-muted)" }}>
               Sign in to save favourite stations and get price-drop alerts.
             </p>
-            <GoogleSignInButton />
+            <SignInPanel />
           </div>
         )}
       </div>

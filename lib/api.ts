@@ -102,6 +102,21 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ id_token: idToken }),
     }),
+
+  /** Create an email/password account. Throws ApiError(409) if the email is taken. */
+  register: (email: string, password: string) =>
+    authedFetch<{ id: number; email: string }>("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+
+  /** Log in with email/password. Throws ApiError(401) on bad credentials. The backend accepts
+   *  `email` (it also reads `username` for the app's form-encoded call). */
+  login: (email: string, password: string) =>
+    authedFetch<TokenResponse>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
 };
 
 export const favouritesApi = {

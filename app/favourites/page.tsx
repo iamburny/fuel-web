@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useFavourites } from "@/lib/favourites";
 import { usePreferences } from "@/lib/preferences";
 import { fuelLabel } from "@/lib/types";
-import GoogleSignInButton from "@/components/GoogleSignInButton";
+import SignInPanel from "@/components/SignInPanel";
 import ComplianceFooter from "@/components/ComplianceFooter";
 
 export default function FavouritesPage() {
@@ -30,9 +30,7 @@ export default function FavouritesPage() {
       {!isLoggedIn ? (
         <div className="card" style={{ padding: 32, textAlign: "center" }}>
           <p style={{ marginBottom: 16 }}>Sign in to save stations and get price-drop alerts.</p>
-          <div style={{ display: "inline-flex" }}>
-            <GoogleSignInButton />
-          </div>
+          <SignInPanel />
         </div>
       ) : favourites.length === 0 ? (
         <div className="card" style={{ padding: 32, textAlign: "center", color: "var(--text-muted)" }}>
